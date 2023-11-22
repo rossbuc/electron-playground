@@ -1,3 +1,4 @@
+import FileExplorer from "./components/FileExplorer"
 import Versions from "./components/Versions"
 import { useState } from "react"
 
@@ -5,7 +6,7 @@ function App(): JSX.Element {
   const [filePath, setFilePath] = useState<string>("")
 
   const handleOnClick = async (): Promise<void> => {
-    const newFilePath = await window.electron.ipcRenderer.invoke("dialog:openFile")
+    const newFilePath: string = await window.api.openFile()
     setFilePath(newFilePath)
   }
 
@@ -16,6 +17,7 @@ function App(): JSX.Element {
       <h1>
         the file path is <strong>{filePath}</strong>
       </h1>
+      <FileExplorer />
     </>
   )
 }

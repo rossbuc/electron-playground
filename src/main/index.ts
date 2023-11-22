@@ -1,12 +1,31 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from "electron"
 import { join } from "path"
 import { electronApp, optimizer, is } from "@electron-toolkit/utils"
-import icon from "../../resources/icon.png?asset"
+import { opendir } from "fs"
 
 const handleFileOpen = async (): Promise<T> => {
   const { canceled, filePaths } = await dialog.showOpenDialog({})
   if (!canceled) {
     return filePaths[0]
+  }
+}
+
+const handleFileExplorer = async (): Promise<T> => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    properties: ["openDirectory", "openFile", "multiSelections", "treatPackageAsDirectory"]
+  })
+  // await opendir("./main", (err, dir): T => {
+  //   if (err) {
+  //     console.log(err)
+  //   } else {
+  //     console.log("Path of the directory", dir.path)
+  //     return dir.read()
+  //   }
+  // })
+
+  if (!canceled) {
+    console.log("These are the files:", filePaths)
+    return filePaths
   }
 }
 
@@ -17,7 +36,6 @@ function createWindow(): void {
     height: 670,
     show: false,
     autoHideMenuBar: true,
-    ...(process.platform === "linux" ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       sandbox: false
@@ -57,6 +75,7 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle("dialog:openFile", handleFileOpen)
+  ipcMain.handle("dialog:fileExplorer", handleFileExplorer)
 
   createWindow()
 

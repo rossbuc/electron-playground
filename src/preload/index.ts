@@ -5,6 +5,10 @@ import { electronAPI } from "@electron-toolkit/preload"
 const api = {
   openFile: (): void => {
     ipcRenderer.invoke("dialog:openFile")
+  },
+  fileExplorer: (): T => {
+    console.log("Preloading the contextBridge baby")
+    ipcRenderer.invoke("dialog:fileExplorer")
   }
 }
 

@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from "electron"
 import { join } from "path"
 import { electronApp, optimizer, is } from "@electron-toolkit/utils"
-import { opendir } from "fs"
+import { opendir, isDirectory, stat } from "fs"
 
 const handleFileOpen = async (): Promise<T> => {
   const { canceled, filePaths } = await dialog.showOpenDialog({})
@@ -24,9 +24,27 @@ const handleFileExplorer = async (): Promise<T> => {
   // })
 
   if (!canceled) {
-    console.log("These are the files:", filePaths)
+    console.log(filePaths)
+    filePaths.map((path) => {
+      stat(path, (err, stats) => {
+        if (err) {
+          console.log(err)
+        } else {
+          console.log("The stats of this path are:", stats)
+          stats.isDirectory() ? parseFolder(path) : parseFile(path)
+        }
+      })
+    })
     return filePaths
   }
+}
+
+const parseFolder = (libPath: string): void => {
+  console.log(`the lib at path ${libPath} has been parsed`)
+}
+
+const parseFile = (filePath: string): void => {
+  console.log(`now parsing this file ${filePath}`)
 }
 
 function createWindow(): void {

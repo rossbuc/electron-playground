@@ -9,6 +9,7 @@ const FileExplorer = (): JSX.Element => {
 
   const handleButtonClick = async (): Promise<T> => {
     const newDir = await window.api.fileExplorer
+    console.log("This is what the api response looks like:", newDir)
     setFiles(newDir)
   }
 

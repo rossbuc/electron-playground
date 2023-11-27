@@ -104,6 +104,7 @@ const parseFile = async (filePath: string): Promise<void> => {
     fs.writeFile(
       "/Users/rossbuchan/personal_projects/electron-playground/data.json",
       JSON.stringify(metadata),
+      { flag: "a+" },
       (err) => {
         if (err) {
           console.log("The following error occured, ", err)

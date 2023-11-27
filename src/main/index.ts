@@ -1,7 +1,12 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from "electron"
 import { join } from "path"
 import { electronApp, optimizer, is } from "@electron-toolkit/utils"
-import { opendir, isDirectory, stat } from "fs"
+import { opendir, isDirectory, stat, readdirSync } from "fs"
+const path = require("path")
+const fs = require("fs")
+const mm = require("music-metadata")
+const util = require("util")
+const { writeFile } = require("fs/promises")
 
 const handleFileOpen = async (): Promise<T> => {
   const { canceled, filePaths } = await dialog.showOpenDialog({})
@@ -25,26 +30,91 @@ const handleFileExplorer = async (): Promise<T> => {
 
   if (!canceled) {
     console.log(filePaths)
-    filePaths.map((path) => {
-      stat(path, (err, stats) => {
-        if (err) {
-          console.log(err)
-        } else {
-          console.log("The stats of this path are:", stats)
-          stats.isDirectory() ? parseFolder(path) : parseFile(path)
-        }
-      })
-    })
+
+    console.log("The timer has started at ")
+    await parseDir(filePaths)
+    console.log("The timer has finished at ")
     return filePaths
   }
 }
 
-const parseFolder = (libPath: string): void => {
-  console.log(`the lib at path ${libPath} has been parsed`)
+// const parseDir = (dirContents: string[] | string): void => {
+//   dirContents.isArray()
+//     ? dirContents.map((path) => {
+//         stat(path, (err, stats) => {
+//           if (err) {
+//             console.log(err)
+//           } else {
+//             console.log("The stats of this path are:", stats)
+//             stats.isDirectory() ? parseDir(path) : parseFile(path)
+//           }
+//         })
+//       })
+//     : typeof dirContents === "string"
+//       ? readdirSync(dirPath).map((file) => {
+//           const filePath = path.join(dirPath, file)
+//           const stat = fs.statSync(filePath)
+
+//           stat.isDirectory() ? parseDir(filePath) : parseFile(path)
+//         })
+//       : console.log("No files or diretory selected.")
+// }
+
+const parseDir = async (dirContents: string[] | string): Promise<void> => {
+  try {
+    dirContents.map((path) => {
+      console.log("This is path in the first loop in the map: ", path)
+      stat(path, (err, stats) => {
+        console.log("This is path in the stat loop of the dirContents.map: ", path)
+        if (err) {
+          console.log(err)
+        } else {
+          console.log("The stats of this path are:", stats)
+          stats.isDirectory() ? parseDir(path) : parseFile(path)
+        }
+      })
+    })
+  } catch (err) {
+    if (err instanceof TypeError) {
+      try {
+        readdirSync(dirContents).map((file) => {
+          const filePath = path.join(dirContents, file)
+          const stat = fs.statSync(filePath)
+          console.log("This is path for parseFile in the try block: ", filePath)
+          stat.isDirectory() ? parseDir(filePath) : parseFile(filePath)
+        })
+      } catch (error) {
+        console.log("An error occured", error)
+      }
+    } else {
+      console.log("An error occured", err)
+    }
+  }
 }
 
-const parseFile = (filePath: string): void => {
+const parseFile = async (filePath: string): Promise<void> => {
   console.log(`now parsing this file ${filePath}`)
+  console.log("this is the files metadata maybe?", fs.statSync(filePath))
+  try {
+    const metadata = await mm.parseFile(filePath)
+    console.log(
+      "This is the metadata from the npm ",
+      util.inspect(metadata, { showHidden: false, depth: null })
+    )
+    fs.writeFile(
+      "/Users/rossbuchan/personal_projects/electron-playground/data.json",
+      JSON.stringify(metadata),
+      (err) => {
+        if (err) {
+          console.log("The following error occured, ", err)
+        } else {
+          console.log("The file was written sucessfully")
+        }
+      }
+    )
+  } catch (error) {
+    console.error(error.message)
+  }
 }
 
 function createWindow(): void {

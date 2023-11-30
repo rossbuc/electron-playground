@@ -13,7 +13,7 @@ const FileExplorer = (): JSX.Element => {
     setFiles(newDir)
   }
 
-  console.log(files)
+  // console.log(files)
   return (
     <>
       <button onClick={handleButtonClick}>Select File</button>

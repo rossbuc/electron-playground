@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog } from "electron"
+import { app, shell, BrowserWindow, ipcMain, dialog, webContents } from "electron"
 import { join } from "path"
 import { electronApp, optimizer, is } from "@electron-toolkit/utils"
 import { opendir, isDirectory, stat, readdirSync } from "fs"
@@ -101,7 +101,7 @@ const parseFile = async (filePath: string): Promise<void> => {
       "This is the metadata from the npm ",
       util.inspect(metadata, { showHidden: false, depth: null })
     )
-    fs.writeFile(
+    fs.promises.writeFile(
       "/Users/rossbuchan/personal_projects/electron-playground/data.json",
       JSON.stringify(metadata),
       { flag: "a+" },
@@ -116,6 +116,46 @@ const parseFile = async (filePath: string): Promise<void> => {
   } catch (error) {
     console.error(error.message)
   }
+}
+
+// const loadLibrary = async (): Promise<T> => {
+//   try {
+//     console.log("trying to find the lib ")
+//     const lib = await JSON.parse(
+//       fs.readFile(
+//         "/Users/rossbuchan/personal_projects/electron-playground/data.json",
+//         "utf8",
+//         (err, data) => {
+//           if (err) {
+//             console.log("Error in the readFile callback", err)
+//           } else {
+//             console.log("this is the data yoiu have got, ", data)
+//             webContents.sender.send(data)
+//           }
+//         }
+//       )
+//     )
+//     console.log("this is the lib returned from the parse, ", lib)
+//     return lib
+//   } catch (err) {
+//     console.error("Error finding Library, ", err.message)
+//   }
+// }
+
+const loadLibrary = async (): Promise<T> => {
+  const libData = await fs.promises.readFile(
+    "/Users/rossbuchan/personal_projects/electron-playground/data.json",
+    "utf8",
+    (err, data) => {
+      if (err) {
+        console.error(err)
+      } else {
+        return data
+      }
+    }
+  )
+  console.log("Lib data in he main prcess after the callback", libData)
+  return libData
 }
 
 function createWindow(): void {
@@ -165,6 +205,8 @@ app.whenReady().then(() => {
 
   ipcMain.handle("dialog:openFile", handleFileOpen)
   ipcMain.handle("dialog:fileExplorer", handleFileExplorer)
+  // ipcMain.handle("loadLib", loadLibrary)
+  ipcMain.handle("loadLib", loadLibrary)
 
   createWindow()
 

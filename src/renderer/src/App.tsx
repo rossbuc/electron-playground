@@ -2,11 +2,15 @@ import DataDisplay from "./components/DataDisplay"
 import FileExplorer from "./components/FileExplorer"
 import Versions from "./components/Versions"
 import { useEffect, useState } from "react"
-import fs from "fs"
+
+interface ISongData {
+  songPath: string
+  songMetaData: ICommonTagsResult
+}
 
 function App(): JSX.Element {
   const [filePath, setFilePath] = useState<string>("")
-  const [library, setLibrary] = useState<T>(null)
+  const [library, setLibrary] = useState<ISongData | null>(null)
 
   useEffect(() => {
     loadLib()
@@ -33,8 +37,7 @@ function App(): JSX.Element {
       <FileExplorer />
 
       <h1>JSON Data</h1>
-      {/* <DataDisplay /> */}
-      <p>{library}</p>
+      {/* <DataDisplay library={library} /> */}
     </>
   )
 }

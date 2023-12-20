@@ -1,12 +1,14 @@
-const fs = require("fs")
-
-const DataDisplay = (): JSX.Element => {
-  const JSONData = fs.readFileSync(
-    "/Users/rossbuchan/personal_projects/electron-playground/data.json"
+const DataDisplay = ({ library }): JSX.Element => {
+  return (
+    <>
+      {Object.entries(library).map(([songKey, song]) => (
+        <div className="songBlock" key={songKey}>
+          <h2>{song.songMetaData.title}</h2>
+          <h3>{song.songMetaData.artist}</h3>
+        </div>
+      ))}
+    </>
   )
-
-  console.log(JSONData)
-  return <></>
 }
 
 export default DataDisplay

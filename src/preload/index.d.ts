@@ -6,3 +6,10 @@ declare global {
     api: unknown
   }
 }
+
+declare global {
+  interface ISongData {
+    songPath: string
+    songMetaData: ICommonTagsResult
+  }
+}

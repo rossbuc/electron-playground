@@ -1,12 +1,18 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, webContents } from "electron"
-import { join } from "path"
+import { format, join } from "path"
 import { electronApp, optimizer, is } from "@electron-toolkit/utils"
 import { opendir, isDirectory, stat, readdirSync } from "fs"
+import { ICommonTagsResult, IPicture } from "music-metadata"
 const path = require("path")
 const fs = require("fs")
 const mm = require("music-metadata")
 const util = require("util")
 const { writeFile } = require("fs/promises")
+
+interface ISongData {
+  songPath: string
+  songMetaData: ICommonTagsResult
+}
 
 const handleFileOpen = async (): Promise<T> => {
   const { canceled, filePaths } = await dialog.showOpenDialog({})
@@ -64,13 +70,13 @@ const parseDir = async (dirContents: string[] | string): Promise<void> => {
   try {
     dirContents.map((path) => {
       console.log("This is path in the first loop in the map: ", path)
-      stat(path, (err, stats) => {
+      stat(path, async (err, stats) => {
         console.log("This is path in the stat loop of the dirContents.map: ", path)
         if (err) {
           console.log(err)
         } else {
           console.log("The stats of this path are:", stats)
-          stats.isDirectory() ? parseDir(path) : parseFile(path)
+          stats.isDirectory() ? parseDir(path) : await parseFile(path)
         }
       })
     })
@@ -94,25 +100,52 @@ const parseDir = async (dirContents: string[] | string): Promise<void> => {
 
 const parseFile = async (filePath: string): Promise<void> => {
   console.log(`now parsing this file ${filePath}`)
-  console.log("this is the files metadata maybe?", fs.statSync(filePath))
+
   try {
     const metadata = await mm.parseFile(filePath)
+    metadata.picture[0].data
+      ? delete metadata.picture[0].data
+      : console.log("This track had no picture data")
+    const formatedData: ISongData = {
+      songPath: filePath,
+      songMetaData: metadata.common
+    }
     console.log(
       "This is the metadata from the npm ",
-      util.inspect(metadata, { showHidden: false, depth: null })
+      util.inspect(formatedData, { showHidden: false, depth: null })
     )
-    fs.promises.writeFile(
-      "/Users/rossbuchan/personal_projects/electron-playground/data.json",
-      JSON.stringify(metadata),
-      { flag: "a+" },
-      (err) => {
-        if (err) {
-          console.log("The following error occured, ", err)
-        } else {
-          console.log("The file was written sucessfully")
-        }
+
+    const existingData: ISongData[] = []
+
+    try {
+      const existingDataBuffer = await fs.readFileSync(
+        "/Users/rossbuchan/personal_projects/electron-playground/data.json"
+      )
+
+      if (existingDataBuffer.length > 0) {
+        existingData.push(JSON.parse(existingDataBuffer.toString()))
       }
-    )
+      existingData.push(formatedData)
+      console.log("This is the existing data in the try block,", existingData)
+    } catch (err) {
+      console.error("This is an error", err)
+    }
+
+    console.log("This is the existing data, ", existingData)
+    if (existingData.length > 0) {
+      await fs.promises.writeFile(
+        "/Users/rossbuchan/personal_projects/electron-playground/data.json",
+        JSON.stringify(existingData),
+        { flag: "w" },
+        (err) => {
+          if (err) {
+            console.log("The following error occured, ", err)
+          } else {
+            console.log("The file was written sucessfully")
+          }
+        }
+      )
+    }
   } catch (error) {
     console.error(error.message)
   }

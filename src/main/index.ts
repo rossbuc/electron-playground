@@ -2,11 +2,17 @@ import { app, shell, BrowserWindow, ipcMain, dialog, webContents } from "electro
 import { join } from "path"
 import { electronApp, optimizer, is } from "@electron-toolkit/utils"
 import { opendir, isDirectory, stat, readdirSync } from "fs"
+import { ICommonTagsResult, IPicture } from "music-metadata"
 const path = require("path")
 const fs = require("fs")
 const mm = require("music-metadata")
 const util = require("util")
 const { writeFile } = require("fs/promises")
+
+interface ISongData {
+  songPath: string
+  songMetaData: ICommonTagsResult
+}
 
 const handleFileOpen = async (): Promise<T> => {
   const { canceled, filePaths } = await dialog.showOpenDialog({})
@@ -62,26 +68,26 @@ const handleFileExplorer = async (): Promise<T> => {
 
 const parseDir = async (dirContents: string[] | string): Promise<void> => {
   try {
-    dirContents.map((path) => {
+    dirContents.map(async (path) => {
       console.log("This is path in the first loop in the map: ", path)
-      stat(path, (err, stats) => {
+      stat(path, async (err, stats) => {
         console.log("This is path in the stat loop of the dirContents.map: ", path)
         if (err) {
           console.log(err)
         } else {
           console.log("The stats of this path are:", stats)
-          stats.isDirectory() ? parseDir(path) : parseFile(path)
+          stats.isDirectory() ? parseDir(path) : await parseFile(path)
         }
       })
     })
   } catch (err) {
     if (err instanceof TypeError) {
       try {
-        readdirSync(dirContents).map((file) => {
+        readdirSync(dirContents).map(async (file) => {
           const filePath = path.join(dirContents, file)
           const stat = fs.statSync(filePath)
           console.log("This is path for parseFile in the try block: ", filePath)
-          stat.isDirectory() ? parseDir(filePath) : parseFile(filePath)
+          stat.isDirectory() ? parseDir(filePath) : await parseFile(filePath)
         })
       } catch (error) {
         console.log("An error occured", error)
@@ -92,27 +98,42 @@ const parseDir = async (dirContents: string[] | string): Promise<void> => {
   }
 }
 
-const parseFile = async (filePath: string): Promise<void> => {
+const parseFile = async (filePath: string): Promise<T> => {
   console.log(`now parsing this file ${filePath}`)
-  console.log("this is the files metadata maybe?", fs.statSync(filePath))
+
+  let existingData: ISongData[] = []
   try {
-    const metadata = await mm.parseFile(filePath)
-    console.log(
-      "This is the metadata from the npm ",
-      util.inspect(metadata, { showHidden: false, depth: null })
+    const existingDataBuffer = await fs.promises.readFile(
+      "/Users/rossbuchan/personal_projects/electron-playground/data.json"
     )
-    fs.promises.writeFile(
-      "/Users/rossbuchan/personal_projects/electron-playground/data.json",
-      JSON.stringify(metadata),
-      { flag: "a+" },
-      (err) => {
-        if (err) {
-          console.log("The following error occured, ", err)
-        } else {
-          console.log("The file was written sucessfully")
-        }
+    console.log("This is the exisitngDataBuffer, ", existingDataBuffer)
+    existingData = await JSON.parse(existingDataBuffer.toString())
+    console.log("This is the existing data, ", existingData)
+    try {
+      const metadata = await mm.parseFile(filePath)
+      delete metadata.common.picture
+      const formatedData: ISongData = {
+        songPath: filePath,
+        songMetaData: metadata.common
       }
-    )
+      existingData.push(formatedData)
+      await fs.promises.writeFile(
+        "/Users/rossbuchan/personal_projects/electron-playground/data.json",
+        JSON.stringify(existingData),
+        { flag: "w" }
+        // (err) => {
+        //   if (err) {
+        //     console.log("The following error occured, ", err)
+        //   } else {
+        //     console.log("The file was written sucessfully")
+        //   }
+        // }
+      )
+      console.log("The file at path, " + filePath + " was written successfully")
+      return "success"
+    } catch (error) {
+      console.error(error.message)
+    }
   } catch (error) {
     console.error(error.message)
   }
@@ -154,6 +175,12 @@ const loadLibrary = async (): Promise<T> => {
       }
     }
   )
+  libData.typeof === undefined
+    ? await fs.promises.writeFile(
+        "/Users/rossbuchan/personal_projects/electron-playground/data.json",
+        JSON.stringify([])
+      )
+    : console.log("The lib data is not undefined apparently")
   console.log("Lib data in he main prcess after the callback", libData)
   return libData
 }

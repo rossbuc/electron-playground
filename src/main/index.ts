@@ -38,7 +38,7 @@ const handleFileExplorer = async (): Promise<T> => {
     console.log(filePaths)
 
     console.log("The timer has started at ")
-    await parseDir(filePaths)
+    await parseInput(filePaths)
     console.log("The timer has finished at ")
     return filePaths
   }
@@ -66,35 +66,31 @@ const handleFileExplorer = async (): Promise<T> => {
 //       : console.log("No files or diretory selected.")
 // }
 
+const parseInput = async (libInput: string[]): Promise<void> => {
+  libInput.map(async (path) => {
+    console.log("This is path in the first loop in the map: ", path)
+    stat(path, async (err, stats) => {
+      console.log("This is path in the stat loop of the dirContents.map: ", path)
+      if (err) {
+        console.log(err)
+      } else {
+        console.log("The stats of this path are:", stats)
+        stats.isDirectory() ? parseDir(path) : await parseFile(path)
+      }
+    })
+  })
+}
+
 const parseDir = async (dirContents: string[] | string): Promise<void> => {
   try {
-    dirContents.map(async (path) => {
-      console.log("This is path in the first loop in the map: ", path)
-      stat(path, async (err, stats) => {
-        console.log("This is path in the stat loop of the dirContents.map: ", path)
-        if (err) {
-          console.log(err)
-        } else {
-          console.log("The stats of this path are:", stats)
-          stats.isDirectory() ? parseDir(path) : await parseFile(path)
-        }
-      })
+    readdirSync(dirContents).map(async (file) => {
+      const filePath = path.join(dirContents, file)
+      const stat = fs.statSync(filePath)
+      console.log("This is path for parseFile in the try block: ", filePath)
+      stat.isDirectory() ? parseDir(filePath) : await parseFile(filePath)
     })
-  } catch (err) {
-    if (err instanceof TypeError) {
-      try {
-        readdirSync(dirContents).map(async (file) => {
-          const filePath = path.join(dirContents, file)
-          const stat = fs.statSync(filePath)
-          console.log("This is path for parseFile in the try block: ", filePath)
-          stat.isDirectory() ? parseDir(filePath) : await parseFile(filePath)
-        })
-      } catch (error) {
-        console.log("An error occured", error)
-      }
-    } else {
-      console.log("An error occured", err)
-    }
+  } catch (error) {
+    console.log("An error occured", error)
   }
 }
 

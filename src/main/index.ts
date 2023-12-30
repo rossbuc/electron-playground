@@ -8,6 +8,7 @@ const fs = require("fs")
 const mm = require("music-metadata")
 const util = require("util")
 const { writeFile } = require("fs/promises")
+import { stat, readdir, promises as fsPromises } from "fs"
 
 interface ISongData {
   songPath: string
@@ -67,71 +68,74 @@ const handleFileExplorer = async (): Promise<T> => {
 // }
 
 const parseInput = async (libInput: string[]): Promise<void> => {
-  libInput.map(async (path) => {
-    console.log("This is path in the first loop in the map: ", path)
-    stat(path, async (err, stats) => {
-      console.log("This is path in the stat loop of the dirContents.map: ", path)
-      if (err) {
-        console.log(err)
-      } else {
-        console.log("The stats of this path are:", stats)
-        stats.isDirectory() ? parseDir(path) : await parseFile(path)
-      }
-    })
-  })
-}
+  for (const filePath of libInput) {
+    try {
+      const stats = await fsPromises.stat(filePath)
 
-const parseDir = async (dirContents: string[] | string): Promise<void> => {
-  try {
-    readdirSync(dirContents).map(async (file) => {
-      const filePath = path.join(dirContents, file)
-      const stat = fs.statSync(filePath)
-      console.log("This is path for parseFile in the try block: ", filePath)
-      stat.isDirectory() ? parseDir(filePath) : await parseFile(filePath)
-    })
-  } catch (error) {
-    console.log("An error occured", error)
+      if (stats.isDirectory()) {
+        await parseDir(filePath)
+      } else {
+        await parseFile(filePath)
+      }
+    } catch (error) {
+      console.error(`Error processing file/directory ${filePath}:`, error.message)
+    }
   }
 }
 
-const parseFile = async (filePath: string): Promise<T> => {
-  console.log(`now parsing this file ${filePath}`)
-
-  let existingData: ISongData[] = []
+const parseDir = async (dirPath: string): Promise<void> => {
   try {
-    const existingDataBuffer = await fs.promises.readFile(
-      "/Users/rossbuchan/personal_projects/electron-playground/data.json"
-    )
-    console.log("This is the exisitngDataBuffer, ", existingDataBuffer)
-    existingData = await JSON.parse(existingDataBuffer.toString())
-    console.log("This is the existing data, ", existingData)
-    try {
-      const metadata = await mm.parseFile(filePath)
-      delete metadata.common.picture
-      const formatedData: ISongData = {
-        songPath: filePath,
-        songMetaData: metadata.common
+    const dirContents = await fsPromises.readdir(dirPath)
+
+    for (const file of dirContents) {
+      const filePath = join(dirPath, file)
+      const fileStats = await fsPromises.stat(filePath)
+
+      if (fileStats.isDirectory()) {
+        await parseDir(filePath)
+      } else {
+        await parseFile(filePath)
       }
-      existingData.push(formatedData)
-      await fs.promises.writeFile(
-        "/Users/rossbuchan/personal_projects/electron-playground/data.json",
-        JSON.stringify(existingData),
-        { flag: "w" }
-        // (err) => {
-        //   if (err) {
-        //     console.log("The following error occured, ", err)
-        //   } else {
-        //     console.log("The file was written sucessfully")
-        //   }
-        // }
-      )
-      console.log("The file at path, " + filePath + " was written successfully")
-      return "success"
-    } catch (error) {
-      console.error(error.message)
     }
   } catch (error) {
-    console.error(error.message)
+    console.error(`Error reading directory ${dirPath}:`, error.message)
+  }
+}
+
+const parseFile = async (filePath: string): Promise<void> => {
+  console.log(`Now parsing this file ${filePath}`)
+
+  try {
+    const existingDataBuffer = await fsPromises.readFile(
+      "/Users/rossbuchan/personal_projects/electron-playground/data.json",
+      "utf8"
+    )
+
+    let existingData: ISongData[] = []
+
+    if (existingDataBuffer.length > 0) {
+      existingData = JSON.parse(existingDataBuffer)
+    }
+
+    const metadata = await mm.parseFile(filePath)
+    delete metadata.common.picture
+
+    const formattedData: ISongData = {
+      songPath: filePath,
+      songMetaData: metadata.common
+    }
+
+    existingData.push(formattedData)
+
+    await fsPromises.writeFile(
+      "/Users/rossbuchan/personal_projects/electron-playground/data.json",
+      JSON.stringify(existingData),
+      { flag: "w" }
+    )
+
+    console.log(`The file at path ${filePath} was written successfully`)
+  } catch (error) {
+    console.error(`Error processing file ${filePath}:`, error.message)
   }
 }
 

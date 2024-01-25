@@ -19,10 +19,10 @@ function App(): JSX.Element {
 
   const loadLib = async (): Promise<void> => {
     const libData = await window.api.loadLib()
+    console.log(Array.isArray(libData))
     console.log("The lib data, ", libData)
     setLibrary(libData)
   }
-
   return (
     <>
       <Versions />
@@ -33,8 +33,7 @@ function App(): JSX.Element {
       <FileExplorer />
 
       <h1>JSON Data</h1>
-      {/* <DataDisplay /> */}
-      <p>{library}</p>
+      <DataDisplay library={library} />
     </>
   )
 }

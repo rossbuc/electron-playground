@@ -164,25 +164,19 @@ const parseFile = async (filePath: string): Promise<void> => {
 // }
 
 const loadLibrary = async (): Promise<T> => {
-  const libData = await fs.promises.readFile(
+  const libData = await fsPromises.readFile(
     "/Users/rossbuchan/personal_projects/electron-playground/data.json",
-    "utf8",
-    (err, data) => {
-      if (err) {
-        console.error(err)
-      } else {
-        return data
-      }
-    }
+    "utf8"
   )
-  libData.typeof === undefined
-    ? await fs.promises.writeFile(
-        "/Users/rossbuchan/personal_projects/electron-playground/data.json",
-        JSON.stringify([])
-      )
-    : console.log("The lib data is not undefined apparently")
+  // libData.typeof === undefined
+  //   ? await fs.promises.writeFile(
+  //       "/Users/rossbuchan/personal_projects/electron-playground/data.json",
+  //       JSON.stringify([])
+  //     )
+  //   : console.log("The lib data is not undefined apparently")
+  console.log(typeof libData)
   console.log("Lib data in he main prcess after the callback", libData)
-  return libData
+  return JSON.parse(libData)
 }
 
 function createWindow(): void {
